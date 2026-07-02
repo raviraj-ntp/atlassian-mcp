@@ -1,0 +1,28 @@
+# default connection used when tools omit the `connection` argument
+default_connection: corp
+
+connections:
+  # Jira Server / Data Center + Bitbucket Server / Data Center
+  corp:
+    jira:
+      flavor: server
+      url: https://jira.example.com
+      token_env: JIRA_PAT
+    bitbucket:
+      flavor: server
+      url: https://bitbucket.example.com
+      username_env: BITBUCKET_USERNAME
+      token_env: BITBUCKET_TOKEN
+
+  # Atlassian Cloud (Jira + Bitbucket Cloud)
+  cloud:
+    jira:
+      flavor: cloud
+      url: https://your-org.atlassian.net
+      email_env: JIRA_EMAIL
+      token_env: JIRA_PAT
+    bitbucket:
+      flavor: cloud
+      workspace: your-workspace
+      username_env: BITBUCKET_USERNAME
+      token_env: BITBUCKET_TOKEN

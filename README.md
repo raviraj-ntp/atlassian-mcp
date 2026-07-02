@@ -99,7 +99,7 @@ No cloud hosting. No third-party proxy. Everything runs locally.
 ### 1. Clone and build
 
 ```bash
-git clone https://github.com/YOUR_USER/atlassian-mcp.git
+git clone https://github.com/ravi-netapp/atlassian-mcp.git
 cd atlassian-mcp
 npm install
 npm run build

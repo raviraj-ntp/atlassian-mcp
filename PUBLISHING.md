@@ -40,7 +40,7 @@ git init
 git add .
 git commit -m "Initial commit: Atlassian MCP server for Jira and Bitbucket"
 git branch -M main
-git remote add origin git@github.com:YOUR_USER/atlassian-mcp.git
+git remote add origin git@github.com:ravi-netapp/atlassian-mcp.git
 git push -u origin main
 ```
 

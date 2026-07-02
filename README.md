@@ -4,11 +4,34 @@ Local MCP server for **Jira** and **Bitbucket**. Gives Cursor (or any MCP client
 
 - Runs on **your machine** (not cloud-hosted)
 - Uses **REST API + personal tokens** — **no Atlassian Connect app**
-- **MIT license** — standalone repo: https://github.com/ravi-netapp/atlassian-mcp
+- **npm:** `@raviraj/atlassian-mcp` — https://www.npmjs.com/package/@raviraj/atlassian-mcp
+- **GitHub:** https://github.com/ravi-netapp/atlassian-mcp
 
 ---
 
-## Quick start
+## Quick start (npm — recommended)
+
+Edit `~/.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "atlassian": {
+      "command": "npx",
+      "args": ["-y", "@raviraj/atlassian-mcp"],
+      "env": {
+        "JIRA_PAT": "your-jira-token",
+        "BITBUCKET_USERNAME": "your-user",
+        "BITBUCKET_TOKEN": "your-bitbucket-token"
+      }
+    }
+  }
+}
+```
+
+Add Jira/Bitbucket URLs via [Setup B](#setup-b--env-only-no-yaml) or `~/.atlassian-mcp.yaml` ([Setup A](#setup-a--yaml-config)). Restart Cursor.
+
+## Install from source (optional)
 
 ```bash
 git clone https://github.com/ravi-netapp/atlassian-mcp.git
@@ -17,7 +40,7 @@ npm install
 npm run build
 ```
 
-Then edit `~/.cursor/mcp.json` (see [Cursor setup](#cursor-setup)), restart Cursor, and ask: *"Use jira_who_am_i"*.
+Then use `"command": "node"` and `"args": ["<<YOUR_CLONE_PATH>>/atlassian-mcp/dist/index.js"]` in `mcp.json`.
 
 ---
 
@@ -25,12 +48,12 @@ Then edit `~/.cursor/mcp.json` (see [Cursor setup](#cursor-setup)), restart Curs
 
 Every user/machine needs **their own** values. Do not copy paths or tokens from someone else's config.
 
-| What | Where | Example |
-|------|--------|---------|
-| Path to this repo | `mcp.json` → `args` | Where **you** cloned it, e.g. `~/code/atlassian-mcp/dist/index.js` |
-| API tokens | `mcp.json` → `env` | Your `JIRA_PAT`, `BITBUCKET_TOKEN`, etc. |
-| Jira/Bitbucket URLs | YAML **or** `env` | Your company's URLs |
-| YAML config file | Optional | Default: `~/.atlassian-mcp.yaml` (home dir on **your** machine) |
+| What | Where | npm install | From source |
+|------|--------|-------------|-------------|
+| Server command | `mcp.json` | `npx` + `@raviraj/atlassian-mcp` | `node` + path to `dist/index.js` |
+| API tokens | `mcp.json` → `env` | Your `JIRA_PAT`, `BITBUCKET_TOKEN`, etc. | Same |
+| Jira/Bitbucket URLs | YAML or `env` | Your company URLs | Same |
+| YAML config | Optional | Default `~/.atlassian-mcp.yaml` | Same |
 
 **You do not need `ATLASSIAN_MCP_CONFIG`** if your YAML file is at `~/.atlassian-mcp.yaml` (the default).
 
@@ -83,8 +106,8 @@ cp config.example.yaml ~/.atlassian-mcp.yaml
 {
   "mcpServers": {
     "atlassian": {
-      "command": "node",
-      "args": ["<<YOUR_CLONE_PATH>>/atlassian-mcp/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "@raviraj/atlassian-mcp"],
       "env": {
         "JIRA_PAT": "your-jira-token",
         "BITBUCKET_USERNAME": "your-user",
@@ -95,7 +118,12 @@ cp config.example.yaml ~/.atlassian-mcp.yaml
 }
 ```
 
-Replace `<<YOUR_CLONE_PATH>>` with the folder where you cloned the repo (e.g. `/Users/jane/code` or `C:\\dev`).
+**From source** — replace `command`/`args` with:
+
+```json
+"command": "node",
+"args": ["<<YOUR_CLONE_PATH>>/atlassian-mcp/dist/index.js"]
+```
 
 **Optional:** use a different YAML file location:
 
@@ -115,8 +143,8 @@ Put everything in `mcp.json` `env`:
 {
   "mcpServers": {
     "atlassian": {
-      "command": "node",
-      "args": ["<<YOUR_CLONE_PATH>>/atlassian-mcp/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "@raviraj/atlassian-mcp"],
       "env": {
         "JIRA_BASE_URL": "https://jira.example.com",
         "JIRA_PAT": "your-token",
@@ -157,18 +185,13 @@ Put everything in `mcp.json` `env`:
 
 ## Cursor setup
 
-1. Edit `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (per project).
-2. Use **Setup A** or **Setup B** above — pick one, not both.
-3. Replace `<<YOUR_CLONE_PATH>>` with your clone location.
-4. Restart Cursor completely.
-5. Check **Settings → MCP** — `atlassian` should list tools.
+1. Edit `~/.cursor/mcp.json`.
+2. Use **npm** (`npx` + `@raviraj/atlassian-mcp`) or **Setup A / B** above.
+3. Restart Cursor. Check **Settings → MCP**.
 
-**Dev mode** (skip `npm run build`):
+**From source only:** `"command": "node"`, `"args": ["<<YOUR_CLONE_PATH>>/atlassian-mcp/dist/index.js"]`
 
-```json
-"command": "npx",
-"args": ["tsx", "<<YOUR_CLONE_PATH>>/atlassian-mcp/src/index.ts"]
-```
+**Dev from source:** `"command": "npx"`, `"args": ["tsx", "<<YOUR_CLONE_PATH>>/atlassian-mcp/src/index.ts"]`
 
 ---
 
@@ -292,4 +315,5 @@ Repos, branches, commits, PRs, review, tasks, code search, build status, webhook
 
 ## Publishing
 
-See [PUBLISHING.md](./PUBLISHING.md).
+- GitHub: [PUBLISHING.md](./PUBLISHING.md)
+- npm: [NPM_PUBLISH.md](./NPM_PUBLISH.md)

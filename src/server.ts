@@ -16,7 +16,7 @@ import { registerJiraTools } from "./tools/jiraTools.js";
 export function createAtlassianMcpServer(factory: ClientFactory): McpServer {
   const server = new McpServer({
     name: "atlassian-mcp",
-    version: "1.0.0",
+    version: "1.0.1",
   });
 
   registerJiraTools(server, factory);

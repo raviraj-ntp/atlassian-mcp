@@ -1,3 +1,10 @@
+/**
+ * @raviraj87/atlassian-mcp · tools/jiraTools.ts
+ * Core MCP tools for Jira issues and search.
+ *
+ * Copyright (c) 2026 Ravi Raj · MIT License · see LICENSE
+ */
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ClientFactory } from "../clients/clientFactory.js";

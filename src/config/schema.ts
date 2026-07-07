@@ -1,3 +1,10 @@
+/**
+ * @raviraj87/atlassian-mcp · config/schema.ts
+ * Zod schema for server configuration.
+ *
+ * Copyright (c) 2026 Ravi Raj · MIT License · see LICENSE
+ */
+
 import { z } from "zod";
 
 const jiraServerSchema = z.object({

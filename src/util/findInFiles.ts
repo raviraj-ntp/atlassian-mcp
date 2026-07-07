@@ -1,3 +1,10 @@
+/**
+ * @raviraj87/atlassian-mcp · util/findInFiles.ts
+ * Repository file search helpers.
+ *
+ * Copyright (c) 2026 Ravi Raj · MIT License · see LICENSE
+ */
+
 export type FileHit = { path: string; line: number; text: string };
 
 export function matchLines(content: string, path: string, regex: RegExp, limit: number, hits: FileHit[]): number {

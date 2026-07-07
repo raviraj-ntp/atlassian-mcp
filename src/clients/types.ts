@@ -1,3 +1,10 @@
+/**
+ * @raviraj87/atlassian-mcp · clients/types.ts
+ * Shared client and API type definitions.
+ *
+ * Copyright (c) 2026 Ravi Raj · MIT License · see LICENSE
+ */
+
 export type AuthHeaders = Record<string, string>;
 
 export type RequestOptions = {

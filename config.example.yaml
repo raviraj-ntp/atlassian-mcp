@@ -1,3 +1,11 @@
+# @raviraj87/atlassian-mcp · config.example.yaml
+# Example server configuration. Copy to ~/.atlassian-mcp.yaml.
+#
+# Copyright (c) 2026 Ravi Raj · MIT License · see LICENSE
+
+#
+# Copyright (c) 2026 Ravi Raj · MIT License · see LICENSE
+
 # default connection used when tools omit the `connection` argument
 default_connection: corp
 

@@ -1,3 +1,10 @@
+/**
+ * @raviraj87/atlassian-mcp · clients/clientFactory.ts
+ * Named connection factory for Jira and Bitbucket clients.
+ *
+ * Copyright (c) 2026 Ravi Raj · MIT License · see LICENSE
+ */
+
 import { loadConfig, resolveEnv } from "../config/loadConfig.js";
 import { AppConfig } from "../config/schema.js";
 import { basicAuth, bearerAuth } from "./baseClient.js";

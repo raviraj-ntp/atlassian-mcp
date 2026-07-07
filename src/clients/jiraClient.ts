@@ -1,3 +1,10 @@
+/**
+ * @raviraj87/atlassian-mcp · clients/jiraClient.ts
+ * Jira REST API client (Server and Cloud).
+ *
+ * Copyright (c) 2026 Ravi Raj · MIT License · see LICENSE
+ */
+
 import { BaseClient } from "./baseClient.js";
 import { JiraConfig } from "../config/schema.js";
 import { RequestOptions } from "./types.js";

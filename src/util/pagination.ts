@@ -1,3 +1,10 @@
+/**
+ * @raviraj87/atlassian-mcp · util/pagination.ts
+ * API pagination helpers.
+ *
+ * Copyright (c) 2026 Ravi Raj · MIT License · see LICENSE
+ */
+
 import { PageResult } from "./response.js";
 
 export function encodeCursor(start: number, limit: number): string {

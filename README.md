@@ -313,6 +313,12 @@ Repos, branches, commits, PRs, review, tasks, code search, build status, webhook
 
 ---
 
+---
+
+## License
+
+Copyright © 2026 Ravi Raj. Licensed under the [MIT License](LICENSE).
+
 ## Publishing (maintainers)
 
 Repo: https://github.com/raviraj-ntp/atlassian-mcp · npm: `@raviraj87/atlassian-mcp`

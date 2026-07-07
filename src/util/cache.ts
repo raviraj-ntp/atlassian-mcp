@@ -1,3 +1,10 @@
+/**
+ * @raviraj87/atlassian-mcp · util/cache.ts
+ * In-memory response cache utilities.
+ *
+ * Copyright (c) 2026 Ravi Raj · MIT License · see LICENSE
+ */
+
 type Entry = { value: unknown; expiresAt: number };
 
 const store = new Map<string, Entry>();

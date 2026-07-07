@@ -1,3 +1,10 @@
+/**
+ * @raviraj87/atlassian-mcp · util/errors.ts
+ * API error normalization helpers.
+ *
+ * Copyright (c) 2026 Ravi Raj · MIT License · see LICENSE
+ */
+
 export class AtlassianError extends Error {
   constructor(
     message: string,

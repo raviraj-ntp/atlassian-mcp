@@ -1,3 +1,10 @@
+/**
+ * @raviraj87/atlassian-mcp · util/keyExtraction.ts
+ * Jira issue key extraction from text.
+ *
+ * Copyright (c) 2026 Ravi Raj · MIT License · see LICENSE
+ */
+
 export function extractJiraKeys(text: string): string[] {
   const matches = text.match(/\b[A-Z][A-Z0-9]+-\d+\b/g) ?? [];
   return [...new Set(matches)];

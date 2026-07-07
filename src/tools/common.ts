@@ -1,3 +1,10 @@
+/**
+ * @raviraj87/atlassian-mcp · tools/common.ts
+ * Shared tool registration and response helpers.
+ *
+ * Copyright (c) 2026 Ravi Raj · MIT License · see LICENSE
+ */
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { stringify, toContent } from "../util/response.js";

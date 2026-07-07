@@ -1,3 +1,10 @@
+/**
+ * @raviraj87/atlassian-mcp · tools/crossproductTools.ts
+ * Cross-product Jira and Bitbucket MCP tools.
+ *
+ * Copyright (c) 2026 Ravi Raj · MIT License · see LICENSE
+ */
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ClientFactory } from "../clients/clientFactory.js";

@@ -1,3 +1,10 @@
+/**
+ * @raviraj87/atlassian-mcp · clients/bitbucketClient.ts
+ * Bitbucket REST API client (Server and Cloud).
+ *
+ * Copyright (c) 2026 Ravi Raj · MIT License · see LICENSE
+ */
+
 import { BaseClient } from "./baseClient.js";
 import { BitbucketConfig } from "../config/schema.js";
 import { RequestOptions } from "./types.js";

@@ -1,7 +1,10 @@
 /**
- * Read-only smoke test. Requires credentials in env (see README).
- * Optional: ATLASSIAN_MCP_CONFIG (defaults to ~/.atlassian-mcp.yaml)
+ * @raviraj87/atlassian-mcp · scripts/test-readonly.mjs
+ * Read-only integration smoke test script.
+ *
+ * Copyright (c) 2026 Ravi Raj · MIT License · see LICENSE
  */
+
 import { ClientFactory } from "../dist/clients/clientFactory.js";
 
 const factory = new ClientFactory();

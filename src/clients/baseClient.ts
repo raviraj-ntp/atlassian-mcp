@@ -1,3 +1,10 @@
+/**
+ * @raviraj87/atlassian-mcp · clients/baseClient.ts
+ * Shared HTTP client utilities and auth helpers.
+ *
+ * Copyright (c) 2026 Ravi Raj · MIT License · see LICENSE
+ */
+
 import { AtlassianError, assertOk } from "../util/errors.js";
 import { AuthHeaders, HttpResult, RequestOptions } from "./types.js";
 

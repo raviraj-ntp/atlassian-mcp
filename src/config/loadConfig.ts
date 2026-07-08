@@ -45,6 +45,10 @@ function loadConfigFromEnv(): AppConfig {
   const bitbucketUsername = process.env.BITBUCKET_USERNAME?.trim();
   const bitbucketToken = process.env.BITBUCKET_TOKEN?.trim();
 
+  const confluenceBaseUrl = process.env.CONFLUENCE_BASE_URL?.trim();
+  const confluencePat = process.env.CONFLUENCE_PAT?.trim();
+  const confluenceEmail = process.env.CONFLUENCE_EMAIL?.trim();
+
   const connection: AppConfig["connections"][string] = {};
 
   if (jiraBaseUrl && jiraPat) {
@@ -78,10 +82,25 @@ function loadConfigFromEnv(): AppConfig {
     };
   }
 
-  if (!connection.jira && !connection.bitbucket) {
+  if (confluenceBaseUrl && confluencePat) {
+    connection.confluence = confluenceEmail
+      ? {
+          flavor: "cloud",
+          url: confluenceBaseUrl,
+          email_env: "CONFLUENCE_EMAIL",
+          token_env: "CONFLUENCE_PAT",
+        }
+      : {
+          flavor: "server",
+          url: confluenceBaseUrl,
+          token_env: "CONFLUENCE_PAT",
+        };
+  }
+
+  if (!connection.jira && !connection.bitbucket && !connection.confluence) {
     throw new Error(
       `Config file not found at ${pathHint()} and env fallback is incomplete. ` +
-        `Set ATLASSIAN_MCP_CONFIG or provide env vars (JIRA_BASE_URL/JIRA_PAT, BITBUCKET_BASE_URL+BITBUCKET_USERNAME+BITBUCKET_TOKEN, or BITBUCKET_WORKSPACE+BITBUCKET_USERNAME+BITBUCKET_TOKEN).`,
+        `Set ATLASSIAN_MCP_CONFIG or provide env vars (JIRA_BASE_URL/JIRA_PAT, BITBUCKET_*, CONFLUENCE_BASE_URL/CONFLUENCE_PAT, etc.).`,
     );
   }
 

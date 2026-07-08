@@ -1,16 +1,14 @@
 # @raviraj87/atlassian-mcp · config.example.yaml
-# Example server configuration. Copy to ~/.atlassian-mcp.yaml.
+# Copy to ~/.atlassian-mcp.yaml and edit URLs. Secrets go in mcp.json env — never here.
 #
-# Copyright (c) 2026 Ravi Raj · MIT License · see LICENSE
+# Dual setup (on-prem + Cloud): use separate connections and token env vars.
+#   corp  → JIRA_PAT (Server PAT, no email)
+#   cloud → ATLASSIAN_CLOUD_EMAIL + JIRA_CLOUD_PAT (from id.atlassian.com)
 
-#
-# Copyright (c) 2026 Ravi Raj · MIT License · see LICENSE
-
-# default connection used when tools omit the `connection` argument
 default_connection: corp
 
 connections:
-  # Jira Server / Data Center + Bitbucket Server / Data Center
+  # On-prem: Jira Server + Bitbucket Server (+ optional Confluence Server)
   corp:
     jira:
       flavor: server
@@ -21,14 +19,25 @@ connections:
       url: https://bitbucket.example.com
       username_env: BITBUCKET_USERNAME
       token_env: BITBUCKET_TOKEN
+    # confluence:
+    #   flavor: server
+    #   url: https://confluence.example.com
+    #   token_env: CONFLUENCE_PAT
 
-  # Atlassian Cloud (Jira + Bitbucket Cloud)
+  # Atlassian Cloud: Confluence (+ optional Jira Cloud, Bitbucket Cloud)
   cloud:
+    confluence:
+      flavor: cloud
+      url: https://your-org.atlassian.net
+      email_env: ATLASSIAN_CLOUD_EMAIL
+      token_env: JIRA_CLOUD_PAT
+      # Scoped tokens (ATATT3x): cloud_id auto-fetched from /_edge/tenant_info, or set explicitly:
+      # cloud_id_env: CONFLUENCE_CLOUD_ID
     jira:
       flavor: cloud
       url: https://your-org.atlassian.net
-      email_env: JIRA_EMAIL
-      token_env: JIRA_PAT
+      email_env: ATLASSIAN_CLOUD_EMAIL
+      token_env: JIRA_CLOUD_PAT
     bitbucket:
       flavor: cloud
       workspace: your-workspace

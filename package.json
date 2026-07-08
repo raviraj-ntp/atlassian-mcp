@@ -1,7 +1,7 @@
 {
   "name": "@raviraj87/atlassian-mcp",
-  "version": "1.0.1",
-  "description": "Local MCP server for Jira + Bitbucket (Server/DC + Cloud)",
+  "version": "1.2.0",
+  "description": "Local MCP server for Jira, Bitbucket, and Confluence (Server/DC + Cloud)",
   "license": "MIT",
   "author": "Ravi Raj",
   "repository": {
@@ -23,6 +23,7 @@
     "model-context-protocol",
     "jira",
     "bitbucket",
+    "confluence",
     "atlassian",
     "cursor"
   ],
@@ -42,8 +43,7 @@
     "prepublishOnly": "npm run build",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test:readonly": "node scripts/test-readonly.mjs"
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",

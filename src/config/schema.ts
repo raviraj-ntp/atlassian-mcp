@@ -34,12 +34,29 @@ const bbCloudSchema = z.object({
   token_env: z.string(),
 });
 
+const confluenceServerSchema = z.object({
+  flavor: z.literal("server"),
+  url: z.string().url(),
+  token_env: z.string(),
+});
+
+const confluenceCloudSchema = z.object({
+  flavor: z.literal("cloud"),
+  url: z.string().url(),
+  email_env: z.string(),
+  token_env: z.string(),
+  /** Required for scoped API tokens (ATATT3x). Classic tokens omit this. */
+  cloud_id: z.string().optional(),
+  cloud_id_env: z.string().optional(),
+});
+
 export const configSchema = z.object({
   default_connection: z.string(),
   connections: z.record(
     z.object({
       jira: z.union([jiraServerSchema, jiraCloudSchema]).optional(),
       bitbucket: z.union([bbServerSchema, bbCloudSchema]).optional(),
+      confluence: z.union([confluenceServerSchema, confluenceCloudSchema]).optional(),
     }),
   ),
 });
@@ -47,3 +64,4 @@ export const configSchema = z.object({
 export type AppConfig = z.infer<typeof configSchema>;
 export type JiraConfig = NonNullable<AppConfig["connections"][string]["jira"]>;
 export type BitbucketConfig = NonNullable<AppConfig["connections"][string]["bitbucket"]>;
+export type ConfluenceConfig = NonNullable<AppConfig["connections"][string]["confluence"]>;

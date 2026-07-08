@@ -1,6 +1,6 @@
 # Atlassian MCP
 
-Local MCP server for **Jira** and **Bitbucket**. Gives Cursor (or any MCP client) ~110 tools to search issues, manage PRs, and link Jira ↔ Bitbucket.
+Local MCP server for **Jira**, **Bitbucket**, and **Confluence**. Gives Cursor (or any MCP client) tools to search issues, manage PRs, read wiki pages, and link Jira ↔ Bitbucket.
 
 - Runs on **your machine** (not cloud-hosted)
 - Uses **REST API + personal tokens** — **no Atlassian Connect app**
@@ -64,21 +64,40 @@ Every user/machine needs **their own** values. Do not copy paths or tokens from 
 | Product | Type | What you need |
 |---------|------|----------------|
 | Jira Server / DC | On-prem | `JIRA_PAT` |
-| Jira Cloud | Atlassian Cloud | `JIRA_EMAIL` + `JIRA_PAT` |
+| Jira Cloud | Atlassian Cloud | `ATLASSIAN_CLOUD_EMAIL` + `JIRA_CLOUD_PAT` |
 | Bitbucket Server / DC | On-prem | `BITBUCKET_USERNAME` + `BITBUCKET_TOKEN` |
 | Bitbucket Cloud | Atlassian Cloud | `BITBUCKET_WORKSPACE` + username + app password |
+| Confluence Server / DC | On-prem | `CONFLUENCE_PAT` (or reuse `JIRA_PAT` if same PAT works) |
+| Confluence Cloud | Atlassian Cloud | `ATLASSIAN_CLOUD_EMAIL` + `JIRA_CLOUD_PAT` |
 
-You can configure **Jira only**, **Bitbucket only**, or both.
+You can configure **Jira only**, **Bitbucket only**, **Confluence only**, or any combination.
+
+### Dual setup: on-prem + Cloud (recommended for enterprise)
+
+Many users have **both** Jira Server and Confluence Cloud. Use YAML with two connections:
+
+| Connection | Products | Env vars in `mcp.json` | Email? |
+|------------|----------|------------------------|--------|
+| `corp` | Jira Server, Bitbucket Server | `JIRA_PAT`, `BITBUCKET_*` | **No** — Server PAT only |
+| `cloud` | Confluence Cloud, Jira Cloud | `ATLASSIAN_CLOUD_EMAIL`, `JIRA_CLOUD_PAT` | **Yes** — [Atlassian account email](https://id.atlassian.com/manage-profile/account) |
+
+`ATLASSIAN_CLOUD_EMAIL` is from **id.atlassian.com**, not your corporate SSO username. On-prem Jira may show the same person as user key `jdoe` with email `jane.doe@company.com` — different auth mechanisms.
+
+**Scoped Cloud tokens** (`ATATT3x…`) use the platform API URL; the server auto-fetches your site `cloud_id` from `{site}/_edge/tenant_info` — no manual ID needed.
 
 ### How to get tokens
 
 **Jira Server/DC:** Profile → Personal Access Tokens → create token → `JIRA_PAT`
 
-**Jira Cloud:** [Create API token](https://id.atlassian.com/manage-profile/security/api-tokens) → `JIRA_EMAIL` + `JIRA_PAT`
+**Jira Cloud:** [Create API token](https://id.atlassian.com/manage-profile/security/api-tokens) → `ATLASSIAN_CLOUD_EMAIL` + `JIRA_CLOUD_PAT`
 
 **Bitbucket Server/DC:** Personal settings → HTTP access tokens → `BITBUCKET_USERNAME` (account slug) + `BITBUCKET_TOKEN`
 
 **Bitbucket Cloud:** Personal settings → App passwords → `BITBUCKET_WORKSPACE` + `BITBUCKET_USERNAME` + `BITBUCKET_TOKEN`
+
+**Confluence Server/DC:** Personal access token → `CONFLUENCE_PAT` (often same as Jira Server PAT)
+
+**Confluence Cloud:** [Create API token](https://id.atlassian.com/manage-profile/security/api-tokens) with Confluence **read + write** scopes for full page control → `ATLASSIAN_CLOUD_EMAIL` + `JIRA_CLOUD_PAT`
 
 ---
 
@@ -100,7 +119,7 @@ cp config.example.yaml ~/.atlassian-mcp.yaml
 # Edit URLs in ~/.atlassian-mcp.yaml for your Jira/Bitbucket instances
 ```
 
-**2. Put secrets in Cursor** (`~/.cursor/mcp.json` → `env`):
+**2. Put secrets in Cursor** (`~/.cursor/mcp.json` → `env`). Dual on-prem + Cloud example:
 
 ```json
 {
@@ -109,12 +128,24 @@ cp config.example.yaml ~/.atlassian-mcp.yaml
       "command": "npx",
       "args": ["-y", "@raviraj87/atlassian-mcp"],
       "env": {
-        "JIRA_PAT": "your-jira-token",
-        "BITBUCKET_USERNAME": "your-user",
+        "JIRA_PAT": "your-jira-server-pat",
+        "JIRA_CLOUD_PAT": "your-atlassian-cloud-api-token",
+        "ATLASSIAN_CLOUD_EMAIL": "you@company.com",
+        "BITBUCKET_USERNAME": "your-bitbucket-user",
         "BITBUCKET_TOKEN": "your-bitbucket-token"
       }
     }
   }
+}
+```
+
+Minimal (on-prem only):
+
+```json
+"env": {
+  "JIRA_PAT": "your-jira-token",
+  "BITBUCKET_USERNAME": "your-user",
+  "BITBUCKET_TOKEN": "your-bitbucket-token"
 }
 ```
 
@@ -157,7 +188,7 @@ Put everything in `mcp.json` `env`:
 }
 ```
 
-**Jira Cloud** — add `"JIRA_EMAIL": "you@company.com"` (do **not** set this for Server/DC).
+**Jira Cloud** — add `"ATLASSIAN_CLOUD_EMAIL": "you@company.com"` and `"JIRA_CLOUD_PAT"` (do **not** use Server `JIRA_PAT` for Cloud).
 
 **Bitbucket Cloud** — use `BITBUCKET_WORKSPACE` instead of `BITBUCKET_BASE_URL`:
 
@@ -173,11 +204,16 @@ Put everything in `mcp.json` `env`:
 |----------|---------------|-------|
 | `JIRA_BASE_URL` | Jira (env mode) | Server/DC or Cloud URL |
 | `JIRA_PAT` | Jira | API / personal access token |
-| `JIRA_EMAIL` | Jira Cloud only | Omit for Server/DC |
+| `JIRA_EMAIL` | Jira/Confluence Cloud (legacy) | Alias for `ATLASSIAN_CLOUD_EMAIL` |
+| `ATLASSIAN_CLOUD_EMAIL` | Cloud Jira + Confluence | From [id.atlassian.com account](https://id.atlassian.com/manage-profile/account) |
+| `JIRA_CLOUD_PAT` | Cloud Jira + Confluence | API token from id.atlassian.com (separate from Server `JIRA_PAT`) |
 | `BITBUCKET_BASE_URL` | BB Server/DC | Omit for Cloud |
 | `BITBUCKET_WORKSPACE` | BB Cloud | Workspace slug |
 | `BITBUCKET_USERNAME` | Bitbucket | Account slug or username |
 | `BITBUCKET_TOKEN` | Bitbucket | HTTP token or app password |
+| `CONFLUENCE_BASE_URL` | Confluence (env mode) | Server/DC or Cloud URL |
+| `CONFLUENCE_PAT` | Confluence | API / personal access token |
+| `CONFLUENCE_EMAIL` | Confluence Cloud only | Omit for Server/DC |
 | `ATLASSIAN_MCP_CONFIG` | Rarely | Only if YAML is **not** at `~/.atlassian-mcp.yaml` |
 | `ATLASSIAN_DEFAULT_CONNECTION` | Optional | Default YAML profile name |
 
@@ -197,16 +233,9 @@ Put everything in `mcp.json` `env`:
 
 ## Verify
 
-**Terminal:**
+**In Cursor:** *"Use confluence_who_am_i with connection cloud"* or *"Use jira_who_am_i with connection corp"*
 
-```bash
-export JIRA_PAT=... BITBUCKET_USERNAME=... BITBUCKET_TOKEN=...
-npm run test:readonly
-```
-
-Expect `"ok": true`.
-
-**In Cursor:** *"Use jira_who_am_i"* or *"Search Jira: assignee = currentUser()"*
+Use `dryRun: true` on write tools (`confluence_create_page`, etc.) to validate payloads without saving.
 
 ---
 
@@ -223,6 +252,7 @@ Expect `"ok": true`.
 | My open tickets | `jira_whats_on_my_plate` |
 | PRs for PROJ-123 | `find_prs_for_jira_issue` |
 | Release notes from JQL | `release_notes` |
+| Read a Confluence runbook | `confluence_get_page`, `confluence_search` |
 
 ---
 
@@ -235,6 +265,19 @@ Issues, comments, worklogs, attachments, links, workflow, agile/sprints, project
 ### Bitbucket (~50)
 
 Repos, branches, commits, PRs, review, tasks, code search, build status, webhooks — plus `bitbucket_api`.
+
+### Confluence (23)
+
+| Area | Tools |
+|------|-------|
+| Pages | `confluence_get_page`, `confluence_get_page_by_title`, `confluence_create_page`, `confluence_update_page`, `confluence_delete_page`, `confluence_get_page_children`, `confluence_get_page_history`, `confluence_restore_page_version`, `confluence_move_page` |
+| Spaces | `confluence_list_spaces`, `confluence_get_space`, `confluence_search` |
+| Labels | `confluence_add_label`, `confluence_remove_label` |
+| Comments | `confluence_get_comments`, `confluence_add_comment`, `confluence_update_comment`, `confluence_delete_comment` |
+| Attachments | `confluence_get_attachments`, `confluence_add_attachment`, `confluence_delete_attachment` |
+| Utility | `confluence_list_connections`, `confluence_who_am_i`, `confluence_api` |
+
+Page bodies use **storage XHTML** (`<p>…</p>`) for create/update. `confluence_get_page` returns `body.storage`, `body.view`, and plain `body.text`. Write tools support `dryRun: true`. Cloud tokens need **read + write** scopes.
 
 ### Cross-product (8)
 
@@ -289,7 +332,7 @@ Repos, branches, commits, PRs, review, tasks, code search, build status, webhook
 | `npm install` | Install dependencies |
 | `npm run build` | Build `dist/` (required before production use) |
 | `npm run dev` | Run with `tsx` (no build) |
-| `npm run test:readonly` | Smoke test against live APIs |
+| `npm run typecheck` | Typecheck without emit |
 
 ---
 
@@ -306,8 +349,9 @@ Repos, branches, commits, PRs, review, tasks, code search, build status, webhook
 |---------|-----|
 | Config file not found | Use Setup B env vars, or create `~/.atlassian-mcp.yaml` |
 | Missing env variable | Add token to `mcp.json` `env` |
-| 401 / 403 Jira | Regenerate token; Cloud needs `JIRA_EMAIL` |
+| 401 / 403 Jira Cloud | Use `ATLASSIAN_CLOUD_EMAIL` + `JIRA_CLOUD_PAT` (not Server `JIRA_PAT`) |
 | 401 / 403 Bitbucket | Use account **slug**, not display name |
+| Confluence 404 on API | Cloud uses `/wiki/rest/api`; Server uses `/rest/api` — use `confluence_api` paths relative to prefix |
 | Tools missing in Cursor | Fix `args` path; run `npm run build`; restart Cursor |
 | Wrong machine paths | Use **your** clone path — never copy `/Users/someone/...` |
 

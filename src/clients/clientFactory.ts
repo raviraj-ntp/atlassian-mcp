@@ -6,15 +6,17 @@
  */
 
 import { loadConfig, resolveEnv } from "../config/loadConfig.js";
-import { AppConfig } from "../config/schema.js";
+import { AppConfig, ConfluenceConfig } from "../config/schema.js";
 import { basicAuth, bearerAuth } from "./baseClient.js";
 import { BitbucketClient } from "./bitbucketClient.js";
+import { ConfluenceClient } from "./confluenceClient.js";
 import { JiraClient } from "./jiraClient.js";
 
 export type ConnectionClients = {
   name: string;
   jira?: JiraClient;
   bitbucket?: BitbucketClient;
+  confluence?: ConfluenceClient;
 };
 
 export class ClientFactory {
@@ -27,6 +29,12 @@ export class ClientFactory {
 
   listConnections(): string[] {
     return Object.keys(this.config.connections);
+  }
+
+  listConfluenceConnections(): string[] {
+    return Object.entries(this.config.connections)
+      .filter(([, entry]) => entry.confluence)
+      .map(([name]) => name);
   }
 
   defaultConnection(): string {
@@ -58,6 +66,20 @@ export class ClientFactory {
       clients.bitbucket = new BitbucketClient(b, basicAuth(user, resolveEnv(b.token_env)));
     }
 
+    if (entry.confluence) {
+      const c = entry.confluence;
+      const cloudId = c.flavor === "cloud" ? resolveConfluenceCloudId(c) : undefined;
+      if (c.flavor === "cloud") {
+        clients.confluence = new ConfluenceClient(
+          c,
+          basicAuth(resolveEnv(c.email_env), resolveEnv(c.token_env)),
+          cloudId,
+        );
+      } else {
+        clients.confluence = new ConfluenceClient(c, bearerAuth(resolveEnv(c.token_env)));
+      }
+    }
+
     this.cache.set(name, clients);
     return clients;
   }
@@ -73,6 +95,12 @@ export class ClientFactory {
     if (!bb) throw new Error("Bitbucket is not configured for this connection");
     return bb;
   }
+
+  requireConfluence(connection?: string): ConfluenceClient {
+    const confluence = this.get(connection).confluence;
+    if (!confluence) throw new Error("Confluence is not configured for this connection");
+    return confluence;
+  }
 }
 
 /** Bitbucket Server auth uses account slug (e.g. jdoe), not email — strip domain if needed. */
@@ -82,4 +110,11 @@ function resolveBitbucketUsername(b: { flavor: string; username_env: string }): 
     return raw.split("@")[0];
   }
   return raw;
+}
+
+/** Scoped Cloud API tokens (ATATT3x) require api.atlassian.com/ex/confluence/{cloudId}. */
+function resolveConfluenceCloudId(c: Extract<ConfluenceConfig, { flavor: "cloud" }>): string | undefined {
+  if (c.cloud_id) return c.cloud_id;
+  if (c.cloud_id_env) return resolveEnv(c.cloud_id_env);
+  return undefined;
 }

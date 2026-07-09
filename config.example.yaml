@@ -1,6 +1,7 @@
 # @raviraj87/atlassian-mcp · config.example.yaml
 # Copy to ~/.atlassian-mcp.yaml and edit URLs. Secrets go in mcp.json env — never here.
-#
+# Copyright (c) 2026 Ravi Raj · MIT License · see LICENSE
+
 # Dual setup (on-prem + Cloud): use separate connections and token env vars.
 #   corp  → JIRA_PAT (Server PAT, no email)
 #   cloud → ATLASSIAN_CLOUD_EMAIL + JIRA_CLOUD_PAT (from id.atlassian.com)

@@ -77,7 +77,7 @@ export function registerBitbucketTools(server: McpServer, factory: ClientFactory
   registerTool(
     server,
     "bitbucket_delete_branch",
-    "Delete a branch.",
+    "Delete a branch. Server/DC uses branch-utils endpoint (not rest/api/1.0/branches). For multiple branches use bitbucket_delete_branches.",
     { ...repoRefSchema, branch: z.string(), dryRun: dryRunField },
     async ({ connection, project, repository, branch, dryRun }) =>
       jsonResult(await factory.requireBitbucket(connection).deleteBranch({ project, repository }, branch, dryRun)),

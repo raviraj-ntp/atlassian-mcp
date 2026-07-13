@@ -50,3 +50,16 @@ export const repoRefSchema = {
   repository: z.string().describe("Repository slug"),
   connection: connectionField,
 };
+
+export const batchOptionsSchema = {
+  mode: z
+    .enum(["sequential", "parallel"])
+    .optional()
+    .describe("Execution mode: sequential (one at a time) or parallel (default)"),
+  onError: z
+    .enum(["continue", "stop"])
+    .optional()
+    .describe("continue=collect all errors (default); stop=abort after first failure"),
+  parallelism: z.number().optional().describe("Max concurrent requests in parallel mode (default 4)"),
+  dryRun: dryRunField,
+};

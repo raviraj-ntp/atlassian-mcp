@@ -7,6 +7,7 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ClientFactory } from "./clients/clientFactory.js";
+import { registerBitbucketBulkTools } from "./tools/bitbucketBulkTools.js";
 import { registerBitbucketTools } from "./tools/bitbucketTools.js";
 import { registerCompositeTools } from "./tools/compositeTools.js";
 import { registerConfluenceTools } from "./tools/confluenceTools.js";
@@ -18,13 +19,14 @@ import { registerJiraTools } from "./tools/jiraTools.js";
 export function createAtlassianMcpServer(factory: ClientFactory): McpServer {
   const server = new McpServer({
     name: "atlassian-mcp",
-    version: "1.2.0",
+    version: "1.3.0",
   });
 
   registerJiraTools(server, factory);
   registerJiraExtendedTools(server, factory);
   registerBitbucketTools(server, factory);
   registerBitbucketExtendedTools(server, factory);
+  registerBitbucketBulkTools(server, factory);
   registerConfluenceTools(server, factory);
   registerConfluenceExtendedTools(server, factory);
   registerCrossProductTools(server, factory);

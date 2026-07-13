@@ -7,9 +7,14 @@
 
 import { BaseClient } from "./baseClient.js";
 import { BitbucketConfig } from "../config/schema.js";
+import { BatchOptions, runBatch } from "../util/batch.js";
 import { RequestOptions } from "./types.js";
 
 type RepoRef = { project: string; repository: string };
+
+function branchRefName(branch: string): string {
+  return branch.startsWith("refs/") ? branch : `refs/heads/${branch}`;
+}
 
 export class BitbucketClient extends BaseClient {
   readonly flavor: "server" | "cloud";
@@ -105,11 +110,62 @@ export class BitbucketClient extends BaseClient {
         dryRun,
       });
     }
-    return this.raw(`${this.repoBase(ref)}/branches`, {
+    return this.raw(
+      `/rest/branch-utils/1.0/projects/${encodeURIComponent(ref.project)}/repos/${encodeURIComponent(ref.repository)}/branches`,
+      {
+        method: "DELETE",
+        body: { name: branchRefName(branch), dryRun: dryRun ?? false },
+        dryRun,
+      },
+    );
+  }
+
+  deleteBranches(ref: RepoRef, branches: string[], options: BatchOptions = {}) {
+    return runBatch(
+      branches,
+      (b) => b,
+      (branch) => this.deleteBranch(ref, branch, options.dryRun),
+      options,
+    );
+  }
+
+  deleteTag(ref: RepoRef, tag: string, dryRun?: boolean) {
+    if (this.flavor === "cloud") {
+      return this.raw(`${this.repoBase(ref)}/refs/tags/${encodeURIComponent(tag)}`, {
+        method: "DELETE",
+        dryRun,
+      });
+    }
+    return this.raw(`${this.repoBase(ref)}/tags/${encodeURIComponent(tag)}`, {
       method: "DELETE",
-      query: { name: branch },
       dryRun,
     });
+  }
+
+  deleteTags(ref: RepoRef, tags: string[], options: BatchOptions = {}) {
+    return runBatch(tags, (t) => t, (tag) => this.deleteTag(ref, tag, options.dryRun), options);
+  }
+
+  bulkPullRequestAction(
+    ref: RepoRef,
+    pullRequestIds: number[],
+    action: "merge" | "decline",
+    options: BatchOptions = {},
+  ) {
+    const fn =
+      action === "merge"
+        ? (id: number) => this.mergePullRequest(ref, id, options.dryRun)
+        : (id: number) => this.declinePullRequest(ref, id, options.dryRun);
+    return runBatch(pullRequestIds, (id) => String(id), fn, options);
+  }
+
+  deleteWebhooks(ref: RepoRef, webhookIds: string[], options: BatchOptions = {}) {
+    return runBatch(
+      webhookIds,
+      (id) => id,
+      (webhookId) => this.deleteWebhook(ref, webhookId, options.dryRun),
+      options,
+    );
   }
 
   listTags(ref: RepoRef, start = 0, limit = 50) {

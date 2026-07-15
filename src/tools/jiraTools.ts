@@ -8,6 +8,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ClientFactory } from "../clients/clientFactory.js";
+import { jiraBulkUpdateOptionsSchema, jiraIssueUpdateSchema } from "../util/jiraBulk.js";
 import { connectionField, dryRunField, jsonResult, registerTool } from "./common.js";
 
 export function registerJiraTools(server: McpServer, factory: ClientFactory): void {
@@ -351,10 +352,22 @@ export function registerJiraTools(server: McpServer, factory: ClientFactory): vo
   registerTool(
     server,
     "jira_bulk_update",
-    "Bulk update multiple issues.",
-    { connection: connectionField, issueUpdates: z.array(z.unknown()), dryRun: dryRunField },
-    async ({ connection, issueUpdates, dryRun }) =>
-      jsonResult(await factory.requireJira(connection).bulkUpdate(issueUpdates, dryRun)),
+    "Bulk update issues with per-issue payloads. Server/DC fans out to parallel PUT (issue/bulk is create-only). Works for any field: fixVersions, assignee, labels, priority, transitions, etc.",
+    {
+      connection: connectionField,
+      issueUpdates: z.array(jiraIssueUpdateSchema).min(1),
+      ...jiraBulkUpdateOptionsSchema,
+    },
+    async ({ connection, issueUpdates, concurrency, batchSize, continueOnError, retries, dryRun }) =>
+      jsonResult(
+        await factory.requireJira(connection).bulkUpdate(issueUpdates, {
+          concurrency,
+          batchSize,
+          continueOnError,
+          retries,
+          dryRun,
+        }),
+      ),
   );
 
   registerTool(

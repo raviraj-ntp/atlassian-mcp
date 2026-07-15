@@ -7,11 +7,37 @@
 
 import { BaseClient } from "./baseClient.js";
 import { JiraConfig } from "../config/schema.js";
+import { BatchOptions, runBatch } from "../util/batch.js";
+import { AtlassianError } from "../util/errors.js";
+import {
+  applyUpdateTemplate,
+  bulkEditUnsupportedReason,
+  issueRef,
+  JiraBulkUpdateResult,
+  JiraIssueUpdate,
+  JiraIssueUpdateTemplate,
+  JiraServerInfo,
+  normalizeIssueUpdates,
+} from "../util/jiraBulk.js";
 import { RequestOptions } from "./types.js";
+
+export interface JiraBulkUpdateOptions extends BatchOptions {
+  concurrency?: number;
+  batchSize?: number;
+  continueOnError?: boolean;
+}
+
+export interface BulkUpdateFromJqlOptions extends JiraBulkUpdateOptions {
+  jql: string;
+  update: JiraIssueUpdateTemplate;
+  maxIssues?: number;
+  verifyJql?: boolean;
+}
 
 export class JiraClient extends BaseClient {
   readonly flavor: "server" | "cloud";
   protected readonly apiPrefix: string;
+  private serverInfoCache?: JiraServerInfo;
 
   constructor(config: JiraConfig, auth: Record<string, string>) {
     super(config.url.replace(/\/+$/, ""), auth);
@@ -218,8 +244,168 @@ export class JiraClient extends BaseClient {
     return this.raw(`issue/${encodeURIComponent(issueKey)}/watchers`);
   }
 
-  bulkUpdate(issueUpdates: unknown[], dryRun?: boolean) {
-    return this.raw("issue/bulk", { method: "POST", body: { issueUpdates }, dryRun });
+  bulkUpdate(issueUpdates: unknown[], options: JiraBulkUpdateOptions = {}) {
+    const items = normalizeIssueUpdates(issueUpdates);
+    return this.bulkUpdateIssues(items, options);
+  }
+
+  async getServerInfo(): Promise<JiraServerInfo> {
+    if (this.serverInfoCache) return this.serverInfoCache;
+    const data = (await this.raw("serverInfo")) as {
+      deploymentType?: string;
+      version?: string;
+      baseUrl?: string;
+    };
+    this.serverInfoCache = {
+      deploymentType: data.deploymentType ?? (this.flavor === "cloud" ? "Cloud" : "Server"),
+      version: data.version ?? "unknown",
+      baseUrl: data.baseUrl ?? this.baseUrl,
+    };
+    return this.serverInfoCache;
+  }
+
+  async bulkUpdateIssues(items: JiraIssueUpdate[], options: JiraBulkUpdateOptions = {}): Promise<JiraBulkUpdateResult> {
+    const info = await this.getServerInfo();
+
+    if (options.dryRun) {
+      return {
+        strategy: "parallel_put",
+        deploymentType: info.deploymentType,
+        deploymentVersion: info.version,
+        reason: bulkEditUnsupportedReason(info, this.flavor),
+        total: items.length,
+        updated: 0,
+        failed: 0,
+        dryRun: true,
+        sample: items.slice(0, 3),
+        failures: [],
+      };
+    }
+
+    return this.bulkUpdateViaParallelPut(items, options, info, bulkEditUnsupportedReason(info, this.flavor));
+  }
+
+  async bulkUpdateFromJql(options: BulkUpdateFromJqlOptions) {
+    const {
+      jql,
+      update,
+      maxIssues,
+      verifyJql = true,
+      concurrency = 10,
+      batchSize = 50,
+      continueOnError = true,
+      retries = 2,
+      dryRun = false,
+    } = options;
+
+    const issues = await this.searchAllIssues(jql, [], maxIssues);
+    const issueUpdates = issues.map((issue) => applyUpdateTemplate(issue.key, update));
+
+    const bulk = await this.bulkUpdateIssues(issueUpdates, {
+      concurrency,
+      batchSize,
+      continueOnError,
+      retries,
+      dryRun,
+    });
+
+    const remainingJqlCount =
+      verifyJql && !dryRun
+        ? ((await this.searchIssues(jql, 0, 1)) as { total?: number }).total ?? 0
+        : dryRun
+          ? issues.length
+          : undefined;
+
+    return {
+      jql,
+      updateTemplate: update,
+      matched: issues.length,
+      remainingJqlCount,
+      ...bulk,
+    };
+  }
+
+  private async searchAllIssues(jql: string, fields: string[], maxIssues?: number) {
+    const maxResults = 100;
+    let startAt = 0;
+    const issues: Array<{ key: string; fields?: Record<string, unknown> }> = [];
+    while (true) {
+      const page = (await this.searchIssues(jql, startAt, maxResults, fields.length ? fields : undefined)) as {
+        total?: number;
+        issues?: Array<{ key: string; fields?: Record<string, unknown> }>;
+      };
+      issues.push(...(page.issues ?? []));
+      if (maxIssues && issues.length >= maxIssues) {
+        return issues.slice(0, maxIssues);
+      }
+      const total = page.total ?? issues.length;
+      startAt += maxResults;
+      if (startAt >= total || !(page.issues?.length)) break;
+    }
+    return issues;
+  }
+
+  private async applyIssueUpdate(item: JiraIssueUpdate, dryRun?: boolean) {
+    const ref = issueRef(item);
+    if (item.transition) {
+      return this.transitionIssue(ref, item.transition.id, item.fields, dryRun);
+    }
+    const body: Record<string, unknown> = {};
+    if (item.fields) body.fields = item.fields;
+    if (item.update) body.update = item.update;
+    if (item.historyMetadata) body.historyMetadata = item.historyMetadata;
+    if (item.properties) body.properties = item.properties;
+    return this.raw(`issue/${encodeURIComponent(ref)}`, { method: "PUT", body, dryRun });
+  }
+
+  private async bulkUpdateViaParallelPut(
+    items: JiraIssueUpdate[],
+    options: JiraBulkUpdateOptions,
+    info: JiraServerInfo,
+    reason?: string,
+  ): Promise<JiraBulkUpdateResult> {
+    const batchSize = Math.max(1, options.batchSize ?? 50);
+    const concurrency = Math.max(1, options.concurrency ?? options.parallelism ?? 10);
+    const continueOnError = options.continueOnError !== false;
+    const allResults: JiraBulkUpdateResult["results"] = [];
+    let updated = 0;
+    let failed = 0;
+
+    for (let offset = 0; offset < items.length; offset += batchSize) {
+      const chunk = items.slice(offset, offset + batchSize);
+      const batch = await runBatch(
+        chunk,
+        issueRef,
+        (item) => this.applyIssueUpdate(item, options.dryRun),
+        {
+          mode: "parallel",
+          parallelism: concurrency,
+          onError: continueOnError ? "continue" : "stop",
+          dryRun: options.dryRun,
+          retries: options.retries ?? 2,
+        },
+      );
+      updated += batch.succeeded;
+      failed += batch.failed;
+      allResults.push(...batch.results);
+      if (!continueOnError && batch.failed > 0) break;
+    }
+
+    const failures = allResults
+      .filter((r) => !r.ok)
+      .map((r) => ({ key: r.item, error: r.error ?? "unknown", status: r.status }));
+
+    return {
+      strategy: "parallel_put",
+      deploymentType: info.deploymentType,
+      deploymentVersion: info.version,
+      reason,
+      total: items.length,
+      updated,
+      failed,
+      failures,
+      results: allResults,
+    };
   }
 
   getBoards(startAt = 0, maxResults = 50) {

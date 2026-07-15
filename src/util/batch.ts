@@ -15,6 +15,7 @@ export interface BatchOptions {
   onError?: OnError;
   parallelism?: number;
   dryRun?: boolean;
+  retries?: number;
 }
 
 export interface BatchItemResult<T> {
@@ -58,16 +59,32 @@ export async function runBatch<TItem, TResult>(
   const results: BatchItemResult<TResult>[] = new Array(items.length);
   let stopped = false;
 
+  const retries = Math.max(0, options.retries ?? 0);
+
   const runOne = async (item: TItem, index: number): Promise<boolean> => {
-    try {
-      const data = await fn(item);
-      results[index] = { item: label(item), ok: true, data };
-      return true;
-    } catch (e) {
-      const err = toBatchError(e);
-      results[index] = { item: label(item), ok: false, error: err.message, status: err.status };
-      return false;
+    let lastErr: { message: string; status?: number } | undefined;
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
+      try {
+        const data = await fn(item);
+        results[index] = { item: label(item), ok: true, data };
+        return true;
+      } catch (e) {
+        lastErr = toBatchError(e);
+        const retryable = lastErr.status === 429 || lastErr.status === 503;
+        if (retryable && attempt < retries) {
+          await new Promise((r) => setTimeout(r, (attempt + 1) * 500));
+          continue;
+        }
+        break;
+      }
     }
+    results[index] = {
+      item: label(item),
+      ok: false,
+      error: lastErr!.message,
+      status: lastErr!.status,
+    };
+    return false;
   };
 
   if (mode === "sequential") {

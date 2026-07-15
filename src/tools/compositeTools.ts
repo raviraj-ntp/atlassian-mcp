@@ -8,9 +8,18 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ClientFactory } from "../clients/clientFactory.js";
+import { jiraBulkUpdateFromJqlOptionsSchema } from "../util/jiraBulk.js";
 import { connectionField, dryRunField, jsonResult, registerTool } from "./common.js";
 
 export function registerCompositeTools(server: McpServer, factory: ClientFactory): void {
+  registerTool(
+    server,
+    "jira_bulk_update_from_jql",
+    "Composite: JQL search → apply the same fields/update/transition to every match → optional verify remaining count. Generic bulk edit for any field.",
+    { connection: connectionField, ...jiraBulkUpdateFromJqlOptionsSchema },
+    async (args) => jsonResult(await factory.requireJira(args.connection).bulkUpdateFromJql(args)),
+  );
+
   registerTool(
     server,
     "jira_triage_issue",

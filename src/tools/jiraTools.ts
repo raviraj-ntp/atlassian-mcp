@@ -12,8 +12,16 @@ import { jiraBulkUpdateOptionsSchema, jiraIssueUpdateSchema } from "../util/jira
 import { connectionField, dryRunField, jsonResult, registerTool } from "./common.js";
 
 export function registerJiraTools(server: McpServer, factory: ClientFactory): void {
-  registerTool(server, "jira_list_connections", "List configured Atlassian connection names.", async () =>
-    jsonResult({ default: factory.defaultConnection(), connections: factory.listConnections() }),
+  registerTool(
+    server,
+    "jira_list_connections",
+    "List connections that have a token set. A site with no token is skipped.",
+    async () =>
+      jsonResult({
+        default: factory.defaultConnection(),
+        connections: factory.listConnections(),
+        skipped: factory.skippedConnections(),
+      }),
   );
 
   registerTool(server, "jira_who_am_i", "Get current Jira user.", { connection: connectionField }, async ({ connection }) =>

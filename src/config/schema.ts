@@ -16,8 +16,10 @@ const jiraServerSchema = z.object({
 const jiraCloudSchema = z.object({
   flavor: z.literal("cloud"),
   url: z.string().url(),
-  email_env: z.string(),
+  email: z.string().min(1),
   token_env: z.string(),
+  /** Set for scoped API tokens (ATATT). Classic tokens omit this. */
+  cloud_id: z.string().optional(),
 });
 
 const bbServerSchema = z.object({
@@ -43,7 +45,7 @@ const confluenceServerSchema = z.object({
 const confluenceCloudSchema = z.object({
   flavor: z.literal("cloud"),
   url: z.string().url(),
-  email_env: z.string(),
+  email: z.string().min(1),
   token_env: z.string(),
   /** Required for scoped API tokens (ATATT3x). Classic tokens omit this. */
   cloud_id: z.string().optional(),

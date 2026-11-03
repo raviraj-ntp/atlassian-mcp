@@ -5,8 +5,8 @@
  * Copyright (c) 2026 Ravi Raj · MIT License · see LICENSE
  */
 
-import { loadConfig, resolveEnv } from "./loadConfig.js";
-import { AppConfig, ConfluenceConfig } from "./schema.js";
+import { envIfSet, loadConfig } from "./loadConfig.js";
+import { AppConfig } from "./schema.js";
 
 export async function loadEnrichedConfig(): Promise<AppConfig> {
   return enrichConfig(loadConfig());
@@ -16,31 +16,25 @@ export async function enrichConfig(config: AppConfig): Promise<AppConfig> {
   const connections: AppConfig["connections"] = {};
 
   for (const [name, entry] of Object.entries(config.connections)) {
+    let jira = entry.jira;
     let confluence = entry.confluence;
-    if (confluence?.flavor === "cloud") {
-      const cloudId = await resolveConfluenceCloudId(confluence);
-      if (cloudId && !confluence.cloud_id) {
-        confluence = { ...confluence, cloud_id: cloudId };
-      }
+    if (confluence?.flavor === "cloud" && !confluence.cloud_id && confluence.cloud_id_env) {
+      const fromEnv = envIfSet(confluence.cloud_id_env);
+      if (fromEnv) confluence = { ...confluence, cloud_id: fromEnv };
     }
-    connections[name] = confluence === entry.confluence ? entry : { ...entry, confluence };
+    const siteUrl =
+      (jira?.flavor === "cloud" && !jira.cloud_id ? jira.url : undefined) ??
+      (confluence?.flavor === "cloud" && !confluence.cloud_id ? confluence.url : undefined);
+    const cloudId = siteUrl ? await fetchCloudId(siteUrl) : undefined;
+    if (jira?.flavor === "cloud" && cloudId && !jira.cloud_id) jira = { ...jira, cloud_id: cloudId };
+    if (confluence?.flavor === "cloud" && cloudId && !confluence.cloud_id) {
+      confluence = { ...confluence, cloud_id: cloudId };
+    }
+    const changed = jira !== entry.jira || confluence !== entry.confluence;
+    connections[name] = changed ? { ...entry, jira, confluence } : entry;
   }
 
   return { ...config, connections };
-}
-
-async function resolveConfluenceCloudId(
-  c: Extract<ConfluenceConfig, { flavor: "cloud" }>,
-): Promise<string | undefined> {
-  if (c.cloud_id) return c.cloud_id;
-  if (c.cloud_id_env) {
-    try {
-      return resolveEnv(c.cloud_id_env);
-    } catch {
-      /* fall through to auto-fetch */
-    }
-  }
-  return fetchCloudId(c.url);
 }
 
 async function fetchCloudId(siteUrl: string): Promise<string | undefined> {

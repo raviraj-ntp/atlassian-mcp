@@ -20,16 +20,21 @@ Edit `~/.cursor/mcp.json`:
       "command": "npx",
       "args": ["-y", "@raviraj87/atlassian-mcp"],
       "env": {
-        "JIRA_PAT": "your-jira-token",
+        "JIRA_URL": "https://jira.example.com",
+        "JIRA_PAT": "your-jira-server-pat",
+        "BITBUCKET_URL": "https://bitbucket.example.com",
         "BITBUCKET_USERNAME": "your-user",
-        "BITBUCKET_TOKEN": "your-bitbucket-token"
+        "BITBUCKET_TOKEN": "your-bitbucket-token",
+        "JIRA_CLOUD_URL": "https://your-org.atlassian.net",
+        "JIRA_CLOUD_EMAIL": "you@company.com",
+        "JIRA_CLOUD_PAT": "your-atlassian-cloud-api-token"
       }
     }
   }
 }
 ```
 
-Add Jira/Bitbucket URLs via [Setup B](#setup-b--env-only-no-yaml) or `~/.atlassian-mcp.yaml` ([Setup A](#setup-a--yaml-config)). Restart Cursor.
+Delete any group you do not use. One token covers every project on that site. Restart Cursor.
 
 ## Install from source (optional)
 
@@ -51,178 +56,69 @@ Every user/machine needs **their own** values. Do not copy paths or tokens from 
 | What | Where | npm install | From source |
 |------|--------|-------------|-------------|
 | Server command | `mcp.json` | `npx` + `@raviraj87/atlassian-mcp` | `node` + path to `dist/index.js` |
-| API tokens | `mcp.json` → `env` | Your `JIRA_PAT`, `BITBUCKET_TOKEN`, etc. | Same |
-| Jira/Bitbucket URLs | YAML or `env` | Your company URLs | Same |
-| YAML config | Optional | Default `~/.atlassian-mcp.yaml` | Same |
-
-**You do not need `ATLASSIAN_MCP_CONFIG`** if your YAML file is at `~/.atlassian-mcp.yaml` (the default).
+| URLs and tokens | `mcp.json` → `env` | One group per site | Same |
 
 ---
 
 ## Authentication (no Atlassian Connect)
 
-| Product | Type | What you need |
-|---------|------|----------------|
-| Jira Server / DC | On-prem | `JIRA_PAT` |
-| Jira Cloud | Atlassian Cloud | `ATLASSIAN_CLOUD_EMAIL` + `JIRA_CLOUD_PAT` |
-| Bitbucket Server / DC | On-prem | `BITBUCKET_USERNAME` + `BITBUCKET_TOKEN` |
-| Bitbucket Cloud | Atlassian Cloud | `BITBUCKET_WORKSPACE` + username + app password |
-| Confluence Server / DC | On-prem | `CONFLUENCE_PAT` (or reuse `JIRA_PAT` if same PAT works) |
-| Confluence Cloud | Atlassian Cloud | `ATLASSIAN_CLOUD_EMAIL` + `JIRA_CLOUD_PAT` |
+| Site | Put these in `mcp.json` `env` | What the token covers |
+|------|--------------------------------|------------------------|
+| Jira Server / DC | `JIRA_URL`, `JIRA_PAT` | Every project on that server |
+| Bitbucket Server / DC | `BITBUCKET_URL`, `BITBUCKET_USERNAME`, `BITBUCKET_TOKEN` | That Bitbucket server |
+| Jira Cloud and Confluence Cloud | `JIRA_CLOUD_URL`, `JIRA_CLOUD_EMAIL`, `JIRA_CLOUD_PAT` | Both products on that Cloud site |
+| Bitbucket Cloud | `BITBUCKET_WORKSPACE`, `BITBUCKET_USERNAME`, `BITBUCKET_TOKEN` | That workspace. Use the slug, not a URL |
 
-You can configure **Jira only**, **Bitbucket only**, **Confluence only**, or any combination.
+Leave a group out and that site stays off. On-prem Jira does not need the Cloud variables. When both are set, tools use `server` unless you pass `"connection": "cloud"`. Set `ATLASSIAN_DEFAULT_CONNECTION` to `cloud` to flip that default.
 
-### Dual setup: on-prem + Cloud (recommended for enterprise)
+`JIRA_BASE_URL` is accepted in place of `JIRA_URL`. `BITBUCKET_BASE_URL` is accepted in place of `BITBUCKET_URL`.
 
-Many users have **both** Jira Server and Confluence Cloud. Use YAML with two connections:
+### Jira Server / Data Center
 
-| Connection | Products | Env vars in `mcp.json` | Email? |
-|------------|----------|------------------------|--------|
-| `corp` | Jira Server, Bitbucket Server | `JIRA_PAT`, `BITBUCKET_*` | **No** — Server PAT only |
-| `cloud` | Confluence Cloud, Jira Cloud | `ATLASSIAN_CLOUD_EMAIL`, `JIRA_CLOUD_PAT` | **Yes** — [Atlassian account email](https://id.atlassian.com/manage-profile/account) |
+1. Open your on-prem Jira → your avatar → **Profile** → **Personal Access Tokens**.
+2. Create a token.
+3. Set `JIRA_URL` to the site origin, with no trailing path (`https://jira.example.com`).
+4. Set `JIRA_PAT` to that token.
 
-`ATLASSIAN_CLOUD_EMAIL` is from **id.atlassian.com**, not your corporate SSO username. On-prem Jira may show the same person as user key `jdoe` with email `jane.doe@company.com` — different auth mechanisms.
+This token is not an Atlassian Cloud API token. One `JIRA_PAT` is enough for every project on that server.
 
-**Scoped Cloud tokens** (`ATATT3x…`) use the platform API URL; the server auto-fetches your site `cloud_id` from `{site}/_edge/tenant_info` — no manual ID needed.
+### Bitbucket Server / Data Center
 
-### How to get tokens
+1. Open Bitbucket → **Manage account** → **HTTP access tokens**.
+2. Create a token.
+3. Set `BITBUCKET_URL`, `BITBUCKET_USERNAME`, and `BITBUCKET_TOKEN`.
+4. `BITBUCKET_USERNAME` is the account slug. An email value is accepted; the server uses the part before `@`.
 
-**Jira Server/DC:** Profile → Personal Access Tokens → create token → `JIRA_PAT`
+### Bitbucket Cloud
 
-**Jira Cloud:** [Create API token](https://id.atlassian.com/manage-profile/security/api-tokens) → `ATLASSIAN_CLOUD_EMAIL` + `JIRA_CLOUD_PAT`
+1. Open Bitbucket → **Personal settings** → **App passwords**.
+2. Create an app password.
+3. Set `BITBUCKET_WORKSPACE` to the workspace slug, plus `BITBUCKET_USERNAME` and `BITBUCKET_TOKEN`.
 
-**Bitbucket Server/DC:** Personal settings → HTTP access tokens → `BITBUCKET_USERNAME` (account slug) + `BITBUCKET_TOKEN`
+Do not set `BITBUCKET_URL` and `BITBUCKET_WORKSPACE` together. A workspace means Bitbucket Cloud.
 
-**Bitbucket Cloud:** Personal settings → App passwords → `BITBUCKET_WORKSPACE` + `BITBUCKET_USERNAME` + `BITBUCKET_TOKEN`
+### Jira Cloud and Confluence Cloud
 
-**Confluence Server/DC:** Personal access token → `CONFLUENCE_PAT` (often same as Jira Server PAT)
+Both products use one token. The email is the Atlassian account email from [id.atlassian.com](https://id.atlassian.com/manage-profile/account), not your on-prem username.
 
-**Confluence Cloud:** [Create API token](https://id.atlassian.com/manage-profile/security/api-tokens) with Confluence **read + write** scopes for full page control → `ATLASSIAN_CLOUD_EMAIL` + `JIRA_CLOUD_PAT`
+1. Open [API tokens](https://id.atlassian.com/manage-profile/security/api-tokens).
+2. Create a token **with scopes**. A token with no scopes cannot call Jira Cloud.
+3. Grant Jira: `read:jira-work`, `write:jira-work`, `read:jira-user`.
+4. Grant Confluence read and write for pages, spaces, comments, and attachments. The same token is used for both products.
+5. Set `JIRA_CLOUD_URL` to `https://your-org.atlassian.net`.
+6. Set `JIRA_CLOUD_EMAIL` to that Atlassian account email.
+7. Set `JIRA_CLOUD_PAT` to the new token.
 
----
+The server reads the site id from `{JIRA_CLOUD_URL}/_edge/tenant_info` and calls `api.atlassian.com`. You do not set a cloud id yourself.
 
-## Choose a setup style
-
-| Style | When to use | Config file? |
-|-------|-------------|--------------|
-| **A. YAML** | Multiple environments (e.g. `corp` + `cloud`) | `~/.atlassian-mcp.yaml` |
-| **B. Env only** | One Jira + one Bitbucket connection | None |
-
----
-
-## Setup A — YAML config
-
-**1. Create config** (URLs only — no secrets in the file):
-
-```bash
-cp config.example.yaml ~/.atlassian-mcp.yaml
-# Edit URLs in ~/.atlassian-mcp.yaml for your Jira/Bitbucket instances
-```
-
-**2. Put secrets in Cursor** (`~/.cursor/mcp.json` → `env`). Dual on-prem + Cloud example:
-
-```json
-{
-  "mcpServers": {
-    "atlassian": {
-      "command": "npx",
-      "args": ["-y", "@raviraj87/atlassian-mcp"],
-      "env": {
-        "JIRA_PAT": "your-jira-server-pat",
-        "JIRA_CLOUD_PAT": "your-atlassian-cloud-api-token",
-        "ATLASSIAN_CLOUD_EMAIL": "you@company.com",
-        "BITBUCKET_USERNAME": "your-bitbucket-user",
-        "BITBUCKET_TOKEN": "your-bitbucket-token"
-      }
-    }
-  }
-}
-```
-
-Minimal (on-prem only):
-
-```json
-"env": {
-  "JIRA_PAT": "your-jira-token",
-  "BITBUCKET_USERNAME": "your-user",
-  "BITBUCKET_TOKEN": "your-bitbucket-token"
-}
-```
-
-**From source** — replace `command`/`args` with:
-
-```json
-"command": "node",
-"args": ["<<YOUR_CLONE_PATH>>/atlassian-mcp/dist/index.js"]
-```
-
-**Optional:** use a different YAML file location:
-
-```json
-"ATLASSIAN_MCP_CONFIG": "/path/on/your/machine/my-atlassian.yaml"
-```
-
-**Optional:** switch profiles per tool call: `"connection": "cloud"` (name from your YAML).
-
----
-
-## Setup B — Env only (no YAML)
-
-Put everything in `mcp.json` `env`:
-
-```json
-{
-  "mcpServers": {
-    "atlassian": {
-      "command": "npx",
-      "args": ["-y", "@raviraj87/atlassian-mcp"],
-      "env": {
-        "JIRA_BASE_URL": "https://jira.example.com",
-        "JIRA_PAT": "your-token",
-        "BITBUCKET_BASE_URL": "https://bitbucket.example.com",
-        "BITBUCKET_USERNAME": "your-user",
-        "BITBUCKET_TOKEN": "your-token"
-      }
-    }
-  }
-}
-```
-
-**Jira Cloud** — add `"ATLASSIAN_CLOUD_EMAIL": "you@company.com"` and `"JIRA_CLOUD_PAT"` (do **not** use Server `JIRA_PAT` for Cloud).
-
-**Bitbucket Cloud** — use `BITBUCKET_WORKSPACE` instead of `BITBUCKET_BASE_URL`:
-
-```json
-"BITBUCKET_WORKSPACE": "my-workspace",
-"BITBUCKET_USERNAME": "my-user",
-"BITBUCKET_TOKEN": "app-password"
-```
-
-### Env variable reference
-
-| Variable | Required when | Notes |
-|----------|---------------|-------|
-| `JIRA_BASE_URL` | Jira (env mode) | Server/DC or Cloud URL |
-| `JIRA_PAT` | Jira | API / personal access token |
-| `JIRA_EMAIL` | Jira/Confluence Cloud (legacy) | Alias for `ATLASSIAN_CLOUD_EMAIL` |
-| `ATLASSIAN_CLOUD_EMAIL` | Cloud Jira + Confluence | From [id.atlassian.com account](https://id.atlassian.com/manage-profile/account) |
-| `JIRA_CLOUD_PAT` | Cloud Jira + Confluence | API token from id.atlassian.com (separate from Server `JIRA_PAT`) |
-| `BITBUCKET_BASE_URL` | BB Server/DC | Omit for Cloud |
-| `BITBUCKET_WORKSPACE` | BB Cloud | Workspace slug |
-| `BITBUCKET_USERNAME` | Bitbucket | Account slug or username |
-| `BITBUCKET_TOKEN` | Bitbucket | HTTP token or app password |
-| `CONFLUENCE_BASE_URL` | Confluence (env mode) | Server/DC or Cloud URL |
-| `CONFLUENCE_PAT` | Confluence | API / personal access token |
-| `CONFLUENCE_EMAIL` | Confluence Cloud only | Omit for Server/DC |
-| `ATLASSIAN_MCP_CONFIG` | Rarely | Only if YAML is **not** at `~/.atlassian-mcp.yaml` |
-| `ATLASSIAN_DEFAULT_CONNECTION` | Optional | Default YAML profile name |
+There is no separate Confluence Server token. Confluence in this server is the Cloud site configured above.
 
 ---
 
 ## Cursor setup
 
 1. Edit `~/.cursor/mcp.json`.
-2. Use **npm** (`npx` + `@raviraj87/atlassian-mcp`) or **Setup A / B** above.
+2. Use **npm** (`npx` + `@raviraj87/atlassian-mcp`) or `node` with `dist/index.js`.
 3. Restart Cursor. Check **Settings → MCP**.
 
 **From source only:** `"command": "node"`, `"args": ["<<YOUR_CLONE_PATH>>/atlassian-mcp/dist/index.js"]`
@@ -233,7 +129,7 @@ Put everything in `mcp.json` `env`:
 
 ## Verify
 
-**In Cursor:** *"Use confluence_who_am_i with connection cloud"* or *"Use jira_who_am_i with connection corp"*
+**In Cursor:** *"Use jira_who_am_i"* or *"Use confluence_who_am_i with connection cloud"*
 
 Use `dryRun: true` on write tools (`confluence_create_page`, etc.) to validate payloads without saving.
 
@@ -243,7 +139,7 @@ Use `dryRun: true` on write tools (`confluence_create_page`, etc.) to validate p
 
 | Parameter | Purpose |
 |-----------|---------|
-| `connection` | YAML profile name (`corp`, `cloud`, …). Omit = default. |
+| `connection` | `server` or `cloud`. Omit = the site that has a token, preferring `server`. |
 | `dryRun` | On write tools: `true` = validate only, no save. |
 
 | You ask | Tool |
@@ -338,7 +234,7 @@ Page bodies use **storage XHTML** (`<p>…</p>`) for create/update. `confluence_
 
 ## Security
 
-- Never commit tokens. YAML holds URLs only; secrets go in `mcp.json` `env`.
+- Never commit tokens. URLs and tokens both live in `mcp.json` `env`.
 - Admin-capable: can create/update/delete issues, PRs, branches. Use `dryRun: true` when testing.
 
 ---
@@ -347,10 +243,11 @@ Page bodies use **storage XHTML** (`<p>…</p>`) for create/update. `confluence_
 
 | Problem | Fix |
 |---------|-----|
-| Config file not found | Use Setup B env vars, or create `~/.atlassian-mcp.yaml` |
-| Missing env variable | Add token to `mcp.json` `env` |
-| 401 / 403 Jira Cloud | Use `ATLASSIAN_CLOUD_EMAIL` + `JIRA_CLOUD_PAT` (not Server `JIRA_PAT`) |
-| 401 / 403 Bitbucket | Use account **slug**, not display name |
+| Server exits at startup | A group is half set. Finish it or remove it: `JIRA_URL` + `JIRA_PAT`, the three Bitbucket variables, or `JIRA_CLOUD_URL` + `JIRA_CLOUD_EMAIL` + `JIRA_CLOUD_PAT` |
+| `scope does not match` on Jira Cloud | Recreate `JIRA_CLOUD_PAT` with `read:jira-work`, `write:jira-work`, and `read:jira-user`. A Confluence-only token cannot call Jira |
+| 401 Jira Cloud | `JIRA_CLOUD_EMAIL` must be the id.atlassian.com email. `JIRA_PAT` is the on-prem token and will not work here |
+| 401 Jira Server | Use a Personal Access Token from that Jira server, in `JIRA_PAT` |
+| 401 / 403 Bitbucket | `BITBUCKET_USERNAME` is the account slug. An email is reduced to the part before `@` |
 | Confluence 404 on API | Cloud uses `/wiki/rest/api`; Server uses `/rest/api` — use `confluence_api` paths relative to prefix |
 | Tools missing in Cursor | Fix `args` path; run `npm run build`; restart Cursor |
 | Wrong machine paths | Use **your** clone path — never copy `/Users/someone/...` |

@@ -9,7 +9,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { stringify, toContent } from "../util/response.js";
 
-export const connectionField = z.string().optional().describe("Named connection from config; defaults to default_connection");
+export const connectionField = z.string().optional().describe("server or cloud. Defaults to server when JIRA_PAT is set");
 export const dryRunField = z.boolean().optional().describe("If true, validate only — no write is performed");
 export const cursorField = z.string().optional();
 export const limitField = z.number().optional().default(50);

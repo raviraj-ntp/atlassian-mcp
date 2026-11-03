@@ -20,7 +20,7 @@ import { registerRichFiltersTools } from "./tools/richFiltersTools.js";
 export function createAtlassianMcpServer(factory: ClientFactory): McpServer {
   const server = new McpServer({
     name: "atlassian-mcp",
-    version: "1.4.0",
+    version: "1.5.0",
   });
 
   registerJiraTools(server, factory);

@@ -40,7 +40,11 @@ export class JiraClient extends BaseClient {
   private serverInfoCache?: JiraServerInfo;
 
   constructor(config: JiraConfig, auth: Record<string, string>) {
-    super(config.url.replace(/\/+$/, ""), auth);
+    const cloudId = config.flavor === "cloud" ? config.cloud_id : undefined;
+    const baseUrl = cloudId
+      ? `https://api.atlassian.com/ex/jira/${cloudId}`
+      : config.url.replace(/\/+$/, "");
+    super(baseUrl, auth);
     this.flavor = config.flavor;
     this.apiPrefix = config.flavor === "cloud" ? "/rest/api/3" : "/rest/api/2";
   }
